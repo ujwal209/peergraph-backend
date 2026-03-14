@@ -133,3 +133,55 @@ async def send_reset_otp(email: EmailStr, background_tasks: BackgroundTasks):
         return {"message": "Recovery sequence initiated. Check your node."}
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to dispatch recovery sequence")
+
+@router.post("/verify-reset-otp")
+async def verify_reset_otp(data: OTPVerify):
+    supabase_admin = get_supabase_admin()
+    
+    # 1. Check OTP
+    now = datetime.datetime.now().isoformat()
+    try:
+        otp_query = supabase_admin.table("otps")\
+            .select("*")\
+            .eq("email", data.email)\
+            .eq("code", data.token)\
+            .eq("type", "recovery")\
+            .eq("used", False)\
+            .gt("expires_at", now)\
+            .execute()
+        
+        if not otp_query.data:
+            raise HTTPException(status_code=400, detail="Invalid or expired recovery sequence")
+        
+        otp_id = otp_query.data[0]['id']
+        
+        # 2. Mark as used
+        supabase_admin.table("otps").update({"used": True}).eq("id", otp_id).execute()
+        
+        return {"message": "Recovery sequence verified. You may now update your identity key."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class PasswordUpdate(BaseModel):
+    email: EmailStr
+    password: str
+
+@router.post("/update-password")
+async def update_password(data: PasswordUpdate):
+    supabase_admin = get_supabase_admin()
+    try:
+        # Find user
+        users = supabase_admin.auth.admin.list_users()
+        target_user = next((u for u in users if u.email == data.email), None)
+        
+        if not target_user:
+            raise HTTPException(status_code=404, detail="Identity not found in network registry")
+        
+        # Update password
+        supabase_admin.auth.admin.update_user_by_id(target_user.id, {"password": data.password})
+        
+        return {"message": "Identity key updated successfully. Security layers established."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

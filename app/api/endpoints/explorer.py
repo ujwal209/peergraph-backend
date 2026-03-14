@@ -83,3 +83,9 @@ async def rename_file(req: FileRename):
     supabase = get_supabase_admin()
     supabase.table('study_materials').update({"file_name": req.newName}).eq('id', req.fileId).execute()
     return {"success": True}
+
+@router.get("/folders/all")
+async def get_all_folders(subjectId: int):
+    supabase = get_supabase_admin()
+    response = supabase.table('folders').select('*').eq('subject_id', subjectId).execute()
+    return response.data or []
