@@ -20,6 +20,10 @@ app.add_middleware(
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+@app.on_event("startup")
+async def startup_event():
+    print("🚀 PeerGraph API is starting up...")
+
 @app.get("/")
 async def root():
-    return {"message": "Welcome to PeerGraph API", "docs": "/docs"}
+    return {"status": "ok", "message": "PeerGraph API is operational"}
