@@ -12,3 +12,7 @@ langgraph==0.0.26
 cloudinary==1.39.1
 python-multipart==0.0.9
 python-dateutil==2.9.0
+pypdf>=6.8.0
+fastapi-mail>=1.6.2
+groq>=0.37.1
+pyparsing>=3.3.2
